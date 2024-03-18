@@ -18,7 +18,7 @@ def sigmoid(x):
     """
 
     ### YOUR CODE HERE (~1 Line)
-
+    s = 1 / (1 + np.exp(-x))
     ### END YOUR CODE
 
     return s
@@ -64,6 +64,14 @@ def naiveSoftmaxLossAndGradient(
     ### Please use the provided softmax function (imported earlier in this file)
     ### This numerically stable implementation helps you avoid issues pertaining
     ### to integer overflow. 
+
+    y_hat = softmax(np.dot(outsideVectors, centerWordVec))
+    loss = -np.log(y_hat)[outsideWordIdx]
+    y_true = np.zeros(outsideVectors.shape[0])
+    y_true[outsideWordIdx] = 1
+    d = y_hat - y_true
+    gradCenterVec = np.dot(np.transpose(outsideVectors), d)
+    gradOutsideVecs = np.dot(np.expand_dims(d, axis=-1), np.expand_dims(centerWordVec, axis=0))
 
     ### END YOUR CODE
 
@@ -111,6 +119,16 @@ def negSamplingLossAndGradient(
     ### YOUR CODE HERE (~10 Lines)
 
     ### Please use your implementation of sigmoid in here.
+    p = (np.dot(outsideVectors, centerWordVec))
+    s_o = sigmoid(p[outsideWordIdx])
+    s_w = sigmoid(-p[negSampleWordIndices])
+    loss = -np.log(s_o) - np.sum(np.log(s_w))
+
+    gradCenterVec = np.dot(s_o - 1, outsideVectors[outsideWordIdx]) + np.dot(1 - s_w, outsideVectors[negSampleWordIndices])
+    gradOutsideVecs = np.zeros(outsideVectors.shape)
+    uniq, indicies, counts = np.unique(negSampleWordIndices, return_index=True, return_counts=True)
+    gradOutsideVecs[outsideWordIdx] = np.dot(s_o - 1, centerWordVec)
+    gradOutsideVecs[uniq] = np.dot(np.expand_dims(counts * (1 - s_w[indicies]), axis=-1), np.expand_dims(centerWordVec, axis=0))
 
     ### END YOUR CODE
 
@@ -157,6 +175,12 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
     ### YOUR CODE HERE (~8 Lines)
+    ind = word2Ind[currentCenterWord]
+    for outsideWord in outsideWords:
+        l, gradCenter, gradOutside = word2vecLossAndGradient(centerWordVectors[ind], word2Ind[outsideWord], outsideVectors, dataset)
+        loss += l
+        gradCenterVecs[ind] += gradCenter
+        gradOutsideVectors += gradOutside
 
     ### END YOUR CODE
     
